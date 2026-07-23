@@ -1,0 +1,23 @@
+[project]
+name = "unienv_wuji"
+version = "0.0.1a1"
+requires-python = ">= 3.10"
+dependencies = [
+    "unienv",
+    "numpy",
+    "wujihandpy>=1.5.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/UniEnvOrg/unienv-wuji"
+Documentation = "https://github.com/UniEnvOrg/unienv-wuji"
+Repository = "https://github.com/UniEnvOrg/unienv-wuji"
+Issues = "https://github.com/UniEnvOrg/unienv-wuji/issues"
+Changelog = "https://github.com/UniEnvOrg/unienv-wuji/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+include = ["*"]
+exclude = ["training*", "tests*"]
