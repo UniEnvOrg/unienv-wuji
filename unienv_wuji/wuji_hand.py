@@ -9,6 +9,14 @@ from unienv_interface.world import WorldNode, RealWorld, World
 from unienv_interface.backends import ComputeBackend, BArrayType, BDeviceType, BDtypeType, BRNGType
 from unienv_interface.backends.numpy import NumpyComputeBackend, NumpyArrayType, NumpyDeviceType, NumpyDtypeType, NumpyRNGType
 from unienv_interface.space import DictSpace, BoxSpace
+from unienv_interface.space.space_utils.metadata_utils import action_metadata, proprio_metadata
+
+
+def _rate_hz(period_s: Optional[float]) -> Optional[float]:
+    """The rate (``fps`` space metadata) matching a period in seconds, ``None`` without one."""
+    if not period_s:
+        return None
+    return float(round(1.0 / float(period_s), 6))
 
 
 class WujiHandHardwareError(RuntimeError):
@@ -188,6 +196,15 @@ class WujiHandActor(WorldNode[
         # Build observation / action spaces using the (possibly device-read) limits.
         # The key set is always stable so downstream consumers can rely on it.
         # Slow-changing diagnostics are refreshed inline at a throttled rate.
+        # Every leaf carries space metadata (units, joint names, source node,
+        # hand serial number when given, and the rate the values are refreshed at).
+        names = list(self.joint_names)
+        described = dict(
+            source=name or None,
+            serial_number=None if serial_number is None else str(serial_number),
+        )
+        realtime = dict(described, fps=_rate_hz(control_timestep))
+        diagnostic = dict(described, fps=_rate_hz(self.diagnostics_period_s))
         self.observation_space = DictSpace(
             NumpyComputeBackend,
             {
@@ -197,6 +214,7 @@ class WujiHandActor(WorldNode[
                     high=self.joint_limit_high,
                     dtype=np.float32,
                     shape=(self.n_joints,),
+                    metadata=proprio_metadata(units="rad", names=names, **realtime),
                 ),
                 "joint_efforts": BoxSpace(  # A, realtime bulk-read
                     NumpyComputeBackend,
@@ -204,6 +222,11 @@ class WujiHandActor(WorldNode[
                     high=self._joint_effort_high,
                     dtype=np.float32,
                     shape=(self.n_joints,),
+                    metadata=proprio_metadata(
+                        units="A", names=names,
+                        label="signed motor current (effort), proportional to motor torque",
+                        **realtime,
+                    ),
                 ),
                 "joint_temperatures": BoxSpace(  # °C, cached SDO (diagnostic)
                     NumpyComputeBackend,
@@ -211,6 +234,7 @@ class WujiHandActor(WorldNode[
                     high=self._joint_temperature_high,
                     dtype=np.float32,
                     shape=(self.n_joints,),
+                    metadata=proprio_metadata(units="degC", names=names, **diagnostic),
                 ),
                 "joint_bus_voltages": BoxSpace(  # V, cached SDO (diagnostic)
                     NumpyComputeBackend,
@@ -218,15 +242,19 @@ class WujiHandActor(WorldNode[
                     high=self._joint_bus_voltage_high,
                     dtype=np.float32,
                     shape=(self.n_joints,),
+                    metadata=proprio_metadata(units="V", names=names, **diagnostic),
                 ),
             },
         )
-        self.action_space = BoxSpace(
+        self.action_space = BoxSpace(  # absolute joint position targets (radians)
             NumpyComputeBackend,
             low=self.joint_limit_low,
             high=self.joint_limit_high,
             dtype=np.float32,
             shape=(self.n_joints,),
+            metadata=action_metadata(
+                control="joint_position", mode="absolute", units="rad", names=names,
+            ),
         )
 
         self.control_timestep = control_timestep  # Control timestep in seconds

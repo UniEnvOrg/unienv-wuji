@@ -446,3 +446,49 @@ def test_all_zero_hardware_errors_do_not_raise():
         assert set(node.get_observation()) == EXPECTED_OBS_KEYS
     finally:
         node.close()
+
+
+def test_spaces_carry_metadata_offline():
+    from unienv_interface.space.space_utils.metadata_utils import validate_metadata
+
+    node = WujiHandActor(connect=False, name="left_hand", control_timestep=0.04)
+    validate_metadata(node.observation_space)
+    validate_metadata(node.action_space)
+
+    obs = node.observation_space.spaces
+    expected = {
+        "joint_positions": ("rad", 25.0),
+        "joint_efforts": ("A", 25.0),
+        "joint_temperatures": ("degC", 0.5),  # throttled diagnostics (2 s)
+        "joint_bus_voltages": ("V", 0.5),
+    }
+    for key, (units, fps) in expected.items():
+        md = obs[key].metadata
+        assert md["kind"] == "proprio"
+        assert md["units"] == units
+        assert md["fps"] == fps
+        assert md["source"] == "left_hand"
+        assert tuple(md["names"]) == tuple(WujiHandActor.joint_names)
+        assert "serial_number" not in md
+
+    act = node.action_space.metadata
+    assert act["kind"] == "action"
+    assert act["control"] == "joint_position"
+    assert act["mode"] == "absolute"
+    assert act["units"] == "rad"
+    assert tuple(act["names"]) == tuple(WujiHandActor.joint_names)
+
+
+def test_spaces_carry_metadata_connected(monkeypatch):
+    from unienv_interface.space.space_utils.metadata_utils import validate_metadata
+
+    _install_fake_sdk(monkeypatch)
+    node = WujiHandActor(connect=True, serial_number="WJ123", diagnostics_period_s=4.0)
+    try:
+        validate_metadata(node.observation_space)
+        validate_metadata(node.action_space)
+        assert node.observation_space["joint_positions"].metadata["serial_number"] == "WJ123"
+        assert node.observation_space["joint_temperatures"].metadata["fps"] == 0.25
+        assert node.action_space.metadata["units"] == "rad"
+    finally:
+        node.close()

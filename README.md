@@ -19,6 +19,18 @@ The SDK does **not** expose joint velocity, motor current, or a separately
 measured joint torque; those channels are therefore not available from this
 adaptor.
 
+### Space metadata
+
+Every observation and action space carries UniEnv space metadata
+(`unienv>=0.0.1b16`): observation leaves are `kind="proprio"` with the `units`
+of the table above (`"rad"`, `"A"`, `"degC"`, `"V"`), the joint `names`
+(`finger{1..5}_joint{1..4}`), `source` (the node `name`), `serial_number` (when
+one is given) and `fps` — `1 / control_timestep` (25 by default) for the
+realtime channels and `1 / diagnostics_period_s` (0.5 by default) for the
+throttled diagnostics. The action space is `kind="action"`,
+`control="joint_position"`, `mode="absolute"`, `units="rad"` with the same
+joint `names`.
+
 ### Always-on diagnostics
 
 `read_joint_temperature()` and `read_joint_bus_voltage()` are bulk operations:
