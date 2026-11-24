@@ -252,8 +252,11 @@ class WujiHandActor(WorldNode[
             high=self.joint_limit_high,
             dtype=np.float32,
             shape=(self.n_joints,),
+            # Like the realtime observations: source node, serial number and
+            # the rate targets are consumed at (1 / control_timestep).
             metadata=action_metadata(
                 control="joint_position", mode="absolute", units="rad", names=names,
+                **realtime,
             ),
         )
 

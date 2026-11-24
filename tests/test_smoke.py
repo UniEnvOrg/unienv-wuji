@@ -477,6 +477,9 @@ def test_spaces_carry_metadata_offline():
     assert act["mode"] == "absolute"
     assert act["units"] == "rad"
     assert tuple(act["names"]) == tuple(WujiHandActor.joint_names)
+    assert act["source"] == "left_hand"
+    assert act["fps"] == 25.0  # targets are consumed at the control rate
+    assert "serial_number" not in act
 
 
 def test_spaces_carry_metadata_connected(monkeypatch):
@@ -490,5 +493,8 @@ def test_spaces_carry_metadata_connected(monkeypatch):
         assert node.observation_space["joint_positions"].metadata["serial_number"] == "WJ123"
         assert node.observation_space["joint_temperatures"].metadata["fps"] == 0.25
         assert node.action_space.metadata["units"] == "rad"
+        assert node.action_space.metadata["serial_number"] == "WJ123"
+        assert node.action_space.metadata["source"] == node.observation_space["joint_positions"].metadata["source"]
+        assert node.action_space.metadata["fps"] == node.observation_space["joint_positions"].metadata["fps"]
     finally:
         node.close()

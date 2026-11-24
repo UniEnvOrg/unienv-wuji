@@ -29,7 +29,8 @@ one is given) and `fps` — `1 / control_timestep` (25 by default) for the
 realtime channels and `1 / diagnostics_period_s` (0.5 by default) for the
 throttled diagnostics. The action space is `kind="action"`,
 `control="joint_position"`, `mode="absolute"`, `units="rad"` with the same
-joint `names`.
+joint `names`, `source`, `serial_number` and `fps` (`1 / control_timestep`) as
+the realtime observations.
 
 ### Always-on diagnostics
 

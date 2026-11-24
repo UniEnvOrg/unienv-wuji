@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+- The action space metadata of `WujiHandActor` now carries `source`, `serial_number` (when given) and `fps` (`1 / control_timestep`), like the realtime observation leaves.
+
 ## 0.0.1a1 (2026-10-17)
 
 - Initial public release
